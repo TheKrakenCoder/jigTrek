@@ -8,8 +8,9 @@ let m_mouseX, m_mouseY;
 let m_debug = false;
 let m_slider;
 let m_numTries = 1;
+let m_newMethod = true;
 
-function preloadOrig() {
+function preload() {
   // m_image = loadImage("image (12).jpg");
   for (let i = 1; i <= 1000; i++) {
     let str = "images/image ("+i+").jpg";
@@ -18,7 +19,7 @@ function preloadOrig() {
     // images.push(loadImage("data_xmas_small/image (1).jpg"));
   }
 }
-function preload() {
+function preloadTrek() {
   // m_image = loadImage("image (12).jpg");
   for (let i = 93; i <= 200; i++) {
     let str = "imagesTrek/image ("+i+").jpg";
@@ -86,6 +87,115 @@ function shuffle2DArray(arr, rows, cols) {
 }
 
 function determineGroups() {
+  // console.log("determineGroups");
+  // initialize
+  for (let i = 0; i < m_rows; i++) {
+    for (let j = 0; j < m_cols; j++) {
+      let idx = i * m_cols + j;
+      m_tiles[i][j].group = idx;
+      m_tiles[i][j].inGroup = false;
+    }
+  }
+
+  // check each cell.  skip those already in a group.
+  for (let i = 0; i < m_rows; i++) {
+    for (let j = 0; j < m_cols; j++) {
+      if (!m_tiles[i][j].inGroup) {
+        // at this point you are at least in your own group
+        m_tiles[i][j].inGroup = true;
+        checkCell(i, j);
+      }
+    }
+  }
+  
+}
+
+function checkCell(i, j) {
+  // console.log('i, j, m_cols = ' , i, j, m_cols);
+  
+  // check cell to the right if it exists and is not already in a group
+  if (j < m_cols-1 && !m_tiles[i][j+1].inGroup) {
+    // this cell's info
+    let row = m_tiles[i][j].row;
+    let col = m_tiles[i][j].col;
+    let group = m_tiles[i][j].group;
+    // is the cell to the right the correct one
+    if (row == m_tiles[i][j+1].row && col+1 == m_tiles[i][j+1].col) {
+      m_tiles[i][j+1].group = group;
+      m_tiles[i][j+1].inGroup = true;
+      checkCell(i, j+1);
+    }
+  }
+
+    // check cell to the left if it exists and is not already in a group
+    if (j > 0 && !m_tiles[i][j-1].inGroup) {
+      // this cell's info
+      let row = m_tiles[i][j].row;
+      let col = m_tiles[i][j].col;
+      let group = m_tiles[i][j].group;
+      // is the cell to the left the correct one
+      if (row == m_tiles[i][j-1].row && col-1 == m_tiles[i][j-1].col) {
+        m_tiles[i][j-1].group = group;
+        m_tiles[i][j-1].inGroup = true;
+        checkCell(i, j-1);
+      }
+    }
+  
+    // check cell to the bottom if it exists and is not already in a group
+    if (i < m_rows-1 && !m_tiles[i+1][j].inGroup) {
+      // this cell's info
+      let row = m_tiles[i][j].row;
+      let col = m_tiles[i][j].col;
+      let group = m_tiles[i][j].group;
+      // is the cell to the bottom the correct one
+      if (row+1 == m_tiles[i+1][j].row && col == m_tiles[i+1][j].col) {
+        m_tiles[i+1][j].group = group;
+        m_tiles[i+1][j].inGroup = true;
+        checkCell(i+1, j);
+      }
+    }
+
+    // check cell to the top if it exists and is not already in a group
+    if (i > 0 && !m_tiles[i-1][j].inGroup) {
+      // this cell's info
+      let row = m_tiles[i][j].row;
+      let col = m_tiles[i][j].col;
+      let group = m_tiles[i][j].group;
+      // is the cell to the bottom the correct one
+      if (row-1 == m_tiles[i-1][j].row && col == m_tiles[i-1][j].col) {
+        m_tiles[i-1][j].group = group;
+        m_tiles[i-1][j].inGroup = true;
+        checkCell(i-1, j);
+      }
+    }
+}
+
+// This should work, I just need to dad the direction values to the tow and column in the if statement
+function checkCellTricky(i, j) {
+  let directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+
+  for (let d = 0; d < directions.length; d++) {
+    let newi = i + directions[d][0];
+    let newj = j + directions[d][1];
+
+    if (newj < m_cols && newj >= 0 && newi < m_rows && newi > 0 && !m_tiles[newi][newj].inGroup) {
+      let row = m_tiles[i][j].row;
+      let col = m_tiles[i][j].col;
+      let group = m_tiles[i][j].group;
+      if (row == m_tiles[newi][newj].row && col + 1 == m_tiles[newi][newj].col) {
+        m_tiles[newi][newj].group = group;
+        m_tiles[newi][newj].inGroup = true;
+        checkCell(newi, newj);
+      }
+    }
+  }
+
+}
+
+
+function determineGroupsOrig() {
+  // console.log("determineGroupsOrig");
+
   for (let i = 0; i < m_rows; i++) {
     for (let j = 0; j < m_cols; j++) {
       let idx = i * m_cols + j;
@@ -322,7 +432,8 @@ function draw() {
   background(51);
 
   // determine collection numbers of each tile
-  determineGroups();
+  if (m_newMethod) determineGroups();
+  else             determineGroupsOrig();
 
   // check for winning.  Every tile's row,col matches the indexes in the nested loop
 

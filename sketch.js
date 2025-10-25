@@ -10,7 +10,7 @@ let m_slider;
 let m_numTries = 1;
 let m_newMethod = true;
 
-function preload() {
+function preloadOrig() {
   // m_image = loadImage("image (12).jpg");
   for (let i = 1; i <= 1000; i++) {
     let str = "images/image ("+i+").jpg";
@@ -19,7 +19,7 @@ function preload() {
     // images.push(loadImage("data_xmas_small/image (1).jpg"));
   }
 }
-function preloadTrek() {
+function preload() {
   // m_image = loadImage("image (12).jpg");
   for (let i = 93; i <= 200; i++) {
     let str = "imagesTrek/image ("+i+").jpg";

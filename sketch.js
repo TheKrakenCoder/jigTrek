@@ -1,3 +1,9 @@
+// x,  width, cols, j
+// y, height, rows, i
+// m_tiles[y][x]
+// m_tiles[row][col]
+// m_tiles[i][j]
+
 let m_images = [];
 let m_tiles;  // a 2D array to hold our tiles
 let m_rows = 3;
@@ -9,17 +15,29 @@ let m_debug = false;
 let m_slider;
 let m_numTries = 1;
 let m_newMethod = true;
+let m_numInGroup = [];
+let m_specialEffect = null;
+let m_confettoColor;
 
-function preloadOrig() {
+function preload() {
   // m_image = loadImage("image (12).jpg");
-  for (let i = 1; i <= 1000; i++) {
+  for (let i = 1; i <= 46; i++) {
+    let str = "imagesLissaMattCruise_Liz/image ("+i+").jpg";
+    // console.log(str);
+    m_images.push(loadImage(str));
+    // images.push(loadImage("data_xmas_small/image (1).jpg"));
+  }
+}
+function preloadJohnsPicturesFromLissaMattCruise() {
+  // m_image = loadImage("image (12).jpg");
+  for (let i = 1; i <= 121; i++) {
     let str = "images/image ("+i+").jpg";
     // console.log(str);
     m_images.push(loadImage(str));
     // images.push(loadImage("data_xmas_small/image (1).jpg"));
   }
 }
-function preload() {
+function preloadTrek() {
   // m_image = loadImage("image (12).jpg");
   for (let i = 93; i <= 200; i++) {
     let str = "imagesTrek/image ("+i+").jpg";
@@ -33,6 +51,9 @@ function setup() {
   createCanvas(640, 480);
 
   for (let i = 0; i < m_images.length; i++) m_images[i].resize(width, height);
+
+  m_confettoColor = [color('#00aeef'), color('#ec008c'), color('#72c8b6')];
+
 
   let button = createButton("New Image");
   button.mousePressed(function() { resetData(); } );
@@ -71,7 +92,12 @@ function resetData() {
   }
 
   shuffle2DArray(m_tiles, m_rows, m_cols);
+  
+  // determine collection numbers of each tile
+  if (m_newMethod) determineGroups();
+  else             determineGroupsOrig();
 
+  m_specialEffect = null;
 }
 
 function shuffle2DArray(arr, rows, cols) {
@@ -89,11 +115,13 @@ function shuffle2DArray(arr, rows, cols) {
 function determineGroups() {
   // console.log("determineGroups");
   // initialize
+  m_numInGroup = [];
   for (let i = 0; i < m_rows; i++) {
     for (let j = 0; j < m_cols; j++) {
       let idx = i * m_cols + j;
       m_tiles[i][j].group = idx;
       m_tiles[i][j].inGroup = false;
+      m_numInGroup[idx] = 1;
     }
   }
 
@@ -412,6 +440,32 @@ function mouseReleased() {
   //   }
   // }
 
+    // determine collection numbers of each tile
+  if (m_newMethod) determineGroups();
+  else             determineGroupsOrig();
+
+  // Determine how many tiles are in each group
+  let numTilesInGroup = Array(m_rows*m_cols).fill(0);
+  for (let i = 0; i < m_rows; i++) {
+    for (let j = 0; j < m_cols; j++) {
+      let grp = m_tiles[i][j].group;
+      numTilesInGroup[grp]++;
+    }
+  }
+
+  // if the number of tiles in a group for a particular tiles has increased,
+  // mark that tile
+  for (let i = 0; i < m_rows; i++) {
+    for (let j = 0; j < m_cols; j++) {
+      let grp = m_tiles[i][j].group;
+      let numInMyGroup = m_tiles[i][j].numInMyGroup
+      if (numTilesInGroup[grp] > numInMyGroup) {
+        m_tiles[i][j].highliteCounter = 60;
+      }
+      m_tiles[i][j].numInMyGroup = numTilesInGroup[grp];
+    }
+  }
+
   console.log('-------------------------------');
 }
 
@@ -432,8 +486,8 @@ function draw() {
   background(51);
 
   // determine collection numbers of each tile
-  if (m_newMethod) determineGroups();
-  else             determineGroupsOrig();
+  // if (m_newMethod) determineGroups();
+  // else             determineGroupsOrig();
 
   // check for winning.  Every tile's row,col matches the indexes in the nested loop
 
@@ -442,10 +496,10 @@ function draw() {
 
   //////////////////
   // Draw Unmoving tiles
-  stroke(255, 0, 0);
   strokeWeight(2);
   textSize(20);
-  let winner = true;
+  let winner = false;
+  if (m_tiles[0][0].numInMyGroup == (m_rows*m_cols)) winner = true;
   for (let i = 0; i < m_rows; i++) {
     for (let j = 0; j < m_cols; j++) {
       if (m_selectedGroup == m_tiles[i][j].group) continue;
@@ -454,23 +508,33 @@ function draw() {
       let y = i * m_h;
 
       image(m_tiles[i][j].img, x, y, m_w, m_h);
+      noStroke();
+      fill(0, 255, 0, 60);
+      if (m_tiles[i][j].highliteCounter > 0 && !winner) {
+        rect(x, y, m_w, m_h);
+        m_tiles[i][j].highliteCounter--;
+      }
+      noFill();
+
+      stroke(255, 0, 0);
       if (m_debug) text(m_tiles[i][j].group, x+m_w/2, y+m_h/2);
       if (m_debug) text(m_tiles[i][j].col + " " + m_tiles[i][j].row, x+m_w/2, y+m_h/2+20);
       let t = m_tiles[i][j];
       if (m_debug) text("M:" + +t.isMoved + " R:" + +t.isReplaced + " E:" + +t.isEmpty + " D:" + +t.isDisplaced, x, y+m_h/2+40)
+      
 
       // check the tile to the right and the tile below and draw a line
       // in between if they are not in the same group
       if (j < m_cols-1) {
         if (m_tiles[i][j].group != m_tiles[i][j+1].group) {
           line((j+1)*m_w, i*m_h, (j+1)*m_w, (i+1)*m_h);
-          winner = false;
+          // winner = false;
         }
       }
       if (i < m_rows-1) {
         if (m_tiles[i][j].group != m_tiles[i+1][j].group) {
           line(j*m_w, (i+1)*m_h, (j+1)*m_w, (i+1)*m_h);
-          winner = false;
+          // winner = false;
         }
       }
     }
@@ -500,6 +564,11 @@ function draw() {
     strokeWeight(20);
     noFill();
     rect(0, 0, width, height);
+    if (m_specialEffect == null) createSpecialEffect();
+  }
+  if (m_specialEffect) {
+    let finished = m_specialEffect.show();
+    // if (finished) m_specialEffect = null;
   }
 
   // Debug check for correctness
@@ -520,5 +589,19 @@ function draw() {
       }
     }
   }
+
+}
+
+// creates an Effect.  Should really return it, but it's being assigned to a global
+function createSpecialEffect() {
+  m_specialEffect = new EffectConfetti(100, 360);
+  return;
+  m_specialEffect = new HeartImages(createVector(width/2, height/2-100), 240);
+
+  const rd = random();
+  if      (rd < 0.20) m_specialEffect = new EffectFireworks(300);
+  else if (rd < 0.60) m_specialEffect = new EffectBouncers(20, 300);
+  else if (rd < 0.80) m_specialEffect = new EffectStreams(createVector(width/2, height/2), 360);
+  else                m_specialEffect = new EffectCoins(createVector(width/2, height/2), 360);
 
 }
